@@ -6,13 +6,11 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { UserContext } from "../../App";
 import { binaryToBase64 } from "../../helpers/image-format-converter";
-import {
-  create,
-  readRegistration,
-} from "../../api/registration-api";
+import { create, readRegistration } from "../../api/registration-api";
 import { remove } from "../../api/event-api";
+import { onEvent } from "../../api/socket-api";
 
-const EventCard = ({ event, events, setEvents }) => {
+const EventCard = ({ event, events, setEvents,notifications }) => {
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState("");
   const { userInfo } = useContext(UserContext);
@@ -68,6 +66,21 @@ const EventCard = ({ event, events, setEvents }) => {
     }
     // eslint-disable-next-line
   }, [userInfo.id, event]);
+
+  useEffect(() => {
+    onEvent("Registration Approved", (data) => {
+      if (data.eventId === event._id) {
+        setRegistrationStatus("approved");
+      }
+    });
+
+    onEvent("Registration Rejected", (data) => {
+      if (data.eventId === event._id) {
+        setRegistrationStatus("rejected");
+      }
+    });
+
+  }, [event._id]);
 
   return (
     <Card

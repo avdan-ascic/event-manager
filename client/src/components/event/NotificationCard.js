@@ -1,99 +1,106 @@
 import { Button } from "reactstrap";
 import styled from "@emotion/styled";
+import { useState, useEffect } from "react";
 
 import { approve, reject } from "../../api/registration-api";
 
 const StyledCard = styled.div`
   width: 500px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
   background-color: #204e59;
+  margin-top: 1rem;
   margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 0.2rem;
 `;
-const DisplayData = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: 1rem;
 
-  @media (max-width: 799px) {
-    flex-direction: column;
-    justify-content: flex-start;
-  }
-`;
 const DisplayButtons = styled.div`
   width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  margin-top: 1rem;
 `;
 
 const NotificationCard = ({
   notification,
   notifications,
   setNotifications,
+  events,
 }) => {
-  const handleApprove = () => {
-    approve(notification._id)
-      .then(() => {
-        let tempRegs = [...notifications];
-        let currentReg = { ...notification };
-        currentReg.isPending = false;
-        currentReg.isApproved = true;
+  const [title, setTitle] = useState("");
 
-        tempRegs[tempRegs.findIndex((r) => r._id === notification._id)] =
-          currentReg;
-        setNotifications(tempRegs);
+  useEffect(() => {
+    setTitle(
+      events[events.findIndex((ev) => ev._id === notification.eventId)].title
+    );
+    // eslint-disable-next-line
+  }, [notification]);
+
+  const handleApprove = () => {
+    approve(notification.id)
+      .then(() => {
+        setNotifications(
+          notifications.filter((notif) => notif.id !== notification.id)
+        );
       })
       .catch((err) => console.log(err));
   };
 
   const handleReject = () => {
-    reject(notification._id)
+    reject(notification.id)
       .then(() => {
-        let tempRegs = [...notifications];
-        let currentReg = { ...notification };
-        currentReg.isPending = false;
-        currentReg.isApproved = false;
-
-        tempRegs[tempRegs.findIndex((r) => r._id === notification._id)] =
-          currentReg;
-        setNotifications(tempRegs);
+        setNotifications(
+          notifications.filter((notif) => notif.id !== notification.id)
+        );
       })
       .catch((err) => console.log(err));
   };
 
+  const handleRemove = () => {
+    setNotifications(
+      notifications.filter((notif) => notif.id !== notification.id)
+    );
+  };
+
   return (
-    <StyledCard pending={notification.isPending}>
-      <DisplayData>
-        <div style={{ color: "#fff" }}>
-          <strong> {notification.userId.email} </strong>
-          is requesting to register to your event
-          <strong> {notification.eventId.title}</strong>
-        </div>
-        <div style={{ display: "flex", gap: ".5rem" }}></div>
-      </DisplayData>
-      <DisplayButtons>
-        <Button
-          className="btn btn-success"
-          style={{ width: 200 }}
-          disabled={!notification.isPending}
-          onClick={handleApprove}
-        >
-          Approve
-        </Button>
-        <Button
-          className="btn btn-danger"
-          style={{ width: 200 }}
-          disabled={!notification.isPending}
-          onClick={handleReject}
-        >
-          Reject
-        </Button>
-      </DisplayButtons>
+    <StyledCard>
+      {notification.status === "request" ? (
+        <>
+          <div style={{ color: "#fff" }}>
+            <strong>{notification.email}</strong> is requesting to register to
+            your event <strong>{title}</strong>.
+          </div>
+          <DisplayButtons>
+            <Button className="btn btn-success" style={{width:200}} onClick={handleApprove}>
+              Approve
+            </Button>
+            <Button className="btn btn-danger" style={{width:200}} onClick={handleReject}>
+              Reject
+            </Button>
+          </DisplayButtons>
+        </>
+      ) : (
+        <>
+          <div style={{ color: "#fff" }}>
+            Your request for <strong>{title}</strong> was
+            {notification.status === "approval" ? (
+              <strong style={{ color: "green" }}> approved</strong>
+            ) : (
+              <strong style={{ color: "red" }}> rejected</strong>
+            )}
+            .
+          </div>
+          <DisplayButtons>
+            <Button
+              className="btn"
+              style={{ backgroundColor: "#127ea3" }}
+              onClick={handleRemove}
+            >
+              Remove
+            </Button>
+          </DisplayButtons>
+        </>
+      )}
     </StyledCard>
   );
 };

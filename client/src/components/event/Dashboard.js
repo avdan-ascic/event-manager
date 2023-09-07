@@ -10,7 +10,6 @@ import {
 import { UserContext } from "../../App";
 import { readAll } from "../../api/event-api";
 import EventCard from "./EventCard";
-import { readUserRegistrations } from "../../api/registration-api";
 import { onEvent } from "../../api/socket-api";
 import NotificationCard from "./NotificationCard";
 
@@ -49,12 +48,6 @@ const Dashboard = () => {
   const { userInfo } = useContext(UserContext);
 
   useEffect(() => {
-    readUserRegistrations()
-      .then((data) => {
-        setNotifications(data.registrations);
-      })
-      .catch((err) => console.log(err));
-
     readAll()
       .then((data) => {
         setEvents(data.events);
@@ -64,10 +57,22 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    onEvent("Registration Request", () => {
-      readUserRegistrations();
+    onEvent("Registration Request", (data) => {
+      setNotifications([...notifications, { ...data, status: "request" }]);
+    });
+
+    onEvent("Registration Approved", (data) => {
+      setNotifications([...notifications, { ...data, status: "approval" }]);
+      readAll();
+    });
+
+    onEvent("Registration Rejected", (data) => {
+      setNotifications([...notifications, { ...data, status: "rejection" }]);
+      readAll();
     });
   });
+
+  
 
   useEffect(() => {
     if (events.length > 0) {
@@ -86,24 +91,20 @@ const Dashboard = () => {
     // eslint-disable-next-line
   }, [dropdownOption, events]);
 
+
   return (
     <div className="container-lg" style={{ maxWidth: 1140 }}>
       {notifications.length > 0 && (
         <NotificationArea>
-          {notifications.map((notification, index) => {
-            if (notification.isPending) {
-              return (
-                <NotificationCard
-                  key={index}
-                  notification={notification}
-                  events={events}
-                  notifications={notifications}
-                  setNotifications={setNotifications}
-                />
-              );
-            }
-            return null;
-          })}
+          {notifications.map((notification, index) => (
+            <NotificationCard
+              key={index}
+              notification={notification}
+              events={events}
+              notifications={notifications}
+              setNotifications={setNotifications}
+            />
+          ))}
         </NotificationArea>
       )}
 
@@ -153,6 +154,7 @@ const Dashboard = () => {
                 event={event}
                 setEvents={setEvents}
                 events={events}
+                notifications={notifications}
               />
             ))}
           </CardsGrid>
